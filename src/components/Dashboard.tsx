@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Search, LayoutGrid, List, LogOut, Sparkles, Trash2, Edit3, MessageSquare, Loader2, Pin, PinOff, RotateCcw } from "lucide-react";
+import { Plus, Search, LayoutGrid, List, LogOut, Sparkles, Trash2, Edit3, MessageSquare, Loader2, Pin, PinOff, RotateCcw, Menu, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUser, useClerk } from "@clerk/nextjs";
 import CreateIdeaModal from "@/components/CreateIdeaModal";
@@ -24,6 +24,7 @@ export default function Dashboard() {
     const { signOut } = useClerk();
     const [ideas, setIdeas] = useState<Idea[]>([]);
     const [isNewModalOpen, setIsNewModalOpen] = useState(false);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [editingIdea, setEditingIdea] = useState<Idea | null>(null);
     const [activeFilter, setActiveFilter] = useState<FilterType>("All Ideas");
     const [searchQuery, setSearchQuery] = useState("");
@@ -93,18 +94,14 @@ export default function Dashboard() {
     };
 
     const filteredIdeas = ideas.filter((i) => {
-        // First filter by Trash
         if (activeFilter === "Trash") {
             if (!i.isTrashed) return false;
         } else {
             if (i.isTrashed) return false;
         }
-
-        // Then filter by active category
         if (activeFilter === "Pinned" && !i.isPinned) return false;
         if (activeFilter === "AI Summaries" && !i.summary) return false;
 
-        // Finally filter by search query
         const matchesSearch = i.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
             i.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
             i.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -117,62 +114,124 @@ export default function Dashboard() {
         setIsNewModalOpen(true);
     };
 
-    return (
-        <div className="min-h-screen bg-transparent flex">
-            {/* Sidebar */}
-            <aside className="w-64 border-r border-white/5 bg-black/20 backdrop-blur-xl p-6 flex flex-col hidden md:flex">
-                <div className="flex items-center gap-2 mb-12">
+    const SidebarContent = () => (
+        <div className="flex flex-col h-full bg-black/40 backdrop-blur-2xl p-6">
+            <div className="flex items-center justify-between mb-12">
+                <div className="flex items-center gap-2">
                     <div className="w-8 h-8 premium-gradient rounded-lg flex items-center justify-center">
                         <Sparkles className="text-white w-5 h-5" />
                     </div>
                     <span className="text-xl font-bold text-white">ZenIdea</span>
                 </div>
+                <button
+                    onClick={() => setIsSidebarOpen(false)}
+                    className="md:hidden p-2 text-muted-foreground hover:text-white"
+                >
+                    <X className="w-6 h-6" />
+                </button>
+            </div>
 
-                <nav className="flex-1 space-y-2">
-                    {(["All Ideas", "Pinned", "AI Summaries", "Trash"] as FilterType[]).map((item) => (
-                        <button
-                            key={item}
-                            onClick={() => setActiveFilter(item)}
-                            className={`w-full text-left px-4 py-2 rounded-xl text-sm font-medium transition-all ${activeFilter === item ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-white hover:bg-white/5"
-                                }`}
-                        >
-                            {item}
-                        </button>
-                    ))}
-                </nav>
-
-                <div className="mt-auto pt-6 border-t border-white/5 flex items-center justify-between">
-                    <div className="flex items-center gap-3 overflow-hidden">
-                        <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center text-xs font-bold text-primary shrink-0 overflow-hidden">
-                            {user?.imageUrl ? <img src={user.imageUrl} className="w-full h-full object-cover" /> : user?.fullName?.[0] || "U"}
-                        </div>
-                        <p className="text-sm font-medium text-white truncate">{user?.fullName}</p>
-                    </div>
-                    <button onClick={() => signOut({ redirectUrl: "/" })} className="p-2 text-muted-foreground hover:text-destructive transition-colors">
-                        <LogOut className="w-4 h-4" />
+            <nav className="flex-1 space-y-2">
+                {(["All Ideas", "Pinned", "AI Summaries", "Trash"] as FilterType[]).map((item) => (
+                    <button
+                        key={item}
+                        onClick={() => {
+                            setActiveFilter(item);
+                            setIsSidebarOpen(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 rounded-xl text-sm font-medium transition-all ${activeFilter === item ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-white hover:bg-white/5"
+                            }`}
+                    >
+                        {item}
                     </button>
+                ))}
+            </nav>
+
+            <div className="mt-auto pt-6 border-t border-white/5 flex items-center justify-between">
+                <div className="flex items-center gap-3 overflow-hidden">
+                    <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center text-xs font-bold text-primary shrink-0 overflow-hidden">
+                        {user?.imageUrl ? <img src={user.imageUrl} className="w-full h-full object-cover" alt="" /> : user?.fullName?.[0] || "U"}
+                    </div>
+                    <p className="text-sm font-medium text-white truncate">{user?.fullName}</p>
                 </div>
+                <button onClick={() => signOut({ redirectUrl: "/" })} className="p-2 text-muted-foreground hover:text-destructive transition-colors">
+                    <LogOut className="w-4 h-4" />
+                </button>
+            </div>
+        </div>
+    );
+
+    return (
+        <div className="min-h-screen bg-transparent flex relative">
+            {/* Desktop Sidebar */}
+            <aside className="w-64 border-r border-white/5 hidden md:block">
+                <SidebarContent />
             </aside>
 
-            {/* Main Content */}
-            <main className="flex-1 p-8 overflow-y-auto">
-                <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-12">
-                    <div>
-                        <h1 className="text-3xl font-bold text-white mb-2">{activeFilter}</h1>
-                        <p className="text-muted-foreground">Capture and organize your brilliance.</p>
+            {/* Mobile Sidebar Overlay */}
+            <AnimatePresence>
+                {isSidebarOpen && (
+                    <div className="fixed inset-0 z-50 md:hidden">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setIsSidebarOpen(false)}
+                            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                        />
+                        <motion.aside
+                            initial={{ x: "-100%" }}
+                            animate={{ x: 0 }}
+                            exit={{ x: "-100%" }}
+                            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                            className="absolute top-0 left-0 w-72 h-full shadow-2xl"
+                        >
+                            <SidebarContent />
+                        </motion.aside>
                     </div>
-                    <div className="flex items-center gap-3">
-                        <div className="relative group">
+                )}
+            </AnimatePresence>
+
+            {/* Main Content */}
+            <main className="flex-1 p-4 md:p-8 overflow-y-auto">
+                <header className="flex flex-col gap-6 mb-12">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <button
+                                onClick={() => setIsSidebarOpen(true)}
+                                className="p-2 md:hidden glass rounded-xl text-white"
+                            >
+                                <Menu className="w-6 h-6" />
+                            </button>
+                            <div>
+                                <h1 className="text-3xl font-bold text-white mb-1">{activeFilter}</h1>
+                                <p className="text-sm text-muted-foreground hidden sm:block">Capture and organize your brilliance.</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => {
+                                setEditingIdea(null);
+                                setIsNewModalOpen(true);
+                            }}
+                            className="flex items-center gap-2 px-4 md:px-5 py-2.5 premium-gradient rounded-2xl text-sm font-bold text-white transform hover:scale-105 transition-all shadow-lg shadow-primary/20"
+                        >
+                            <Plus className="w-5 h-5" />
+                            <span className="hidden xs:inline">New Idea</span>
+                        </button>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                        <div className="relative group w-full flex-1">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                             <input
                                 type="text"
                                 placeholder="Search ideas..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-2xl text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all w-full md:w-64"
+                                className="pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-2xl text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all w-full"
                             />
                         </div>
-                        <div className="flex items-center bg-white/5 rounded-2xl p-1 border border-white/10">
+                        <div className="flex items-center bg-white/5 rounded-2xl p-1 border border-white/10 shrink-0 self-end sm:self-auto">
                             <button
                                 onClick={() => setViewMode("grid")}
                                 className={`p-1.5 rounded-xl transition-all ${viewMode === "grid" ? "bg-white/10 text-white shadow-lg" : "text-muted-foreground hover:text-white"}`}
@@ -186,16 +245,6 @@ export default function Dashboard() {
                                 <List className="w-4 h-4" />
                             </button>
                         </div>
-                        <button
-                            onClick={() => {
-                                setEditingIdea(null);
-                                setIsNewModalOpen(true);
-                            }}
-                            className="flex items-center gap-2 px-5 py-2.5 premium-gradient rounded-2xl text-sm font-bold text-white transform hover:scale-105 transition-all shadow-lg shadow-primary/20"
-                        >
-                            <Plus className="w-5 h-5" />
-                            New Idea
-                        </button>
                     </div>
                 </header>
 
@@ -205,7 +254,7 @@ export default function Dashboard() {
                         <p className="text-muted-foreground animate-pulse">Loading your knowledge...</p>
                     </div>
                 ) : filteredIdeas.length > 0 ? (
-                    <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
+                    <div className={viewMode === "grid" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
                         <AnimatePresence>
                             {filteredIdeas.map((idea) => (
                                 <motion.div
@@ -214,7 +263,7 @@ export default function Dashboard() {
                                     initial={{ opacity: 0, scale: 0.95 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     exit={{ opacity: 0, scale: 0.95 }}
-                                    className={`group glass rounded-3xl p-6 hover:border-white/20 transition-all hover:shadow-2xl hover:shadow-primary/5 relative overflow-hidden ${viewMode === "list" ? "flex items-center justify-between gap-6" : ""
+                                    className={`group glass rounded-3xl p-6 hover:border-white/20 transition-all hover:shadow-2xl hover:shadow-primary/5 relative overflow-hidden ${viewMode === "list" ? "flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6" : ""
                                         }`}
                                 >
                                     <div className="absolute top-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 z-10">
@@ -222,19 +271,19 @@ export default function Dashboard() {
                                             <>
                                                 <button
                                                     onClick={() => togglePin(idea)}
-                                                    className={`p-2 bg-white/5 rounded-xl hover:bg-white/10 transition-all ${idea.isPinned ? "text-primary" : "text-muted-foreground hover:text-white"}`}
+                                                    className={`p-2 bg-white/10 backdrop-blur-md rounded-xl hover:bg-white/20 transition-all ${idea.isPinned ? "text-primary" : "text-muted-foreground hover:text-white"}`}
                                                 >
                                                     {idea.isPinned ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />}
                                                 </button>
                                                 <button
                                                     onClick={() => openEditModal(idea)}
-                                                    className="p-2 bg-white/5 rounded-xl hover:bg-white/10 text-muted-foreground hover:text-white transition-all"
+                                                    className="p-2 bg-white/10 backdrop-blur-md rounded-xl hover:bg-white/20 text-muted-foreground hover:text-white transition-all"
                                                 >
                                                     <Edit3 className="w-4 h-4" />
                                                 </button>
                                                 <button
                                                     onClick={() => toggleTrash(idea)}
-                                                    className="p-2 bg-white/5 rounded-xl hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all"
+                                                    className="p-2 bg-white/10 backdrop-blur-md rounded-xl hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-all"
                                                 >
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
@@ -243,14 +292,14 @@ export default function Dashboard() {
                                             <>
                                                 <button
                                                     onClick={() => toggleTrash(idea)}
-                                                    className="p-2 bg-white/5 rounded-xl hover:bg-primary/10 text-muted-foreground hover:text-primary transition-all"
+                                                    className="p-2 bg-white/10 backdrop-blur-md rounded-xl hover:bg-primary/20 text-muted-foreground hover:text-primary transition-all"
                                                     title="Restore"
                                                 >
                                                     <RotateCcw className="w-4 h-4" />
                                                 </button>
                                                 <button
                                                     onClick={() => deleteIdeaPermanently(idea.id)}
-                                                    className="p-2 bg-white/5 rounded-xl hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all"
+                                                    className="p-2 bg-white/10 backdrop-blur-md rounded-xl hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-all"
                                                     title="Delete Permanently"
                                                 >
                                                     <Trash2 className="w-4 h-4" />
@@ -290,12 +339,12 @@ export default function Dashboard() {
                         </AnimatePresence>
                     </div>
                 ) : (
-                    <div className="flex flex-col items-center justify-center p-20 glass rounded-[3rem] text-center border-dashed">
-                        <div className="w-20 h-20 bg-white/5 rounded-[2.5rem] flex items-center justify-center mb-8">
-                            <Sparkles className="w-10 h-10 text-muted-foreground/30" />
+                    <div className="flex flex-col items-center justify-center p-12 md:p-20 glass rounded-[2rem] md:rounded-[3rem] text-center border-dashed">
+                        <div className="w-16 h-16 md:w-20 md:h-20 bg-white/5 rounded-[2rem] md:rounded-[2.5rem] flex items-center justify-center mb-8">
+                            <Sparkles className="w-8 h-8 md:w-10 md:h-10 text-muted-foreground/30" />
                         </div>
-                        <h2 className="text-2xl font-bold text-white mb-3">No ideas found in {activeFilter}</h2>
-                        <p className="text-muted-foreground max-w-sm mb-10 leading-relaxed">
+                        <h2 className="text-xl md:text-2xl font-bold text-white mb-3">No ideas found in {activeFilter}</h2>
+                        <p className="text-muted-foreground max-w-sm mb-10 text-sm md:text-base leading-relaxed">
                             Your knowledge base is empty. Start by capturing your first brilliant thought.
                         </p>
                         <button
@@ -303,7 +352,7 @@ export default function Dashboard() {
                                 setEditingIdea(null);
                                 setIsNewModalOpen(true);
                             }}
-                            className="px-8 py-4 premium-gradient rounded-2xl text-lg font-bold text-white transform hover:scale-105 transition-all shadow-xl shadow-primary/30"
+                            className="px-6 md:px-8 py-3 md:py-4 premium-gradient rounded-2xl text-base md:text-lg font-bold text-white transform hover:scale-105 transition-all shadow-xl shadow-primary/30"
                         >
                             Get Started
                         </button>
