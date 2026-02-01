@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Search, LayoutGrid, List, LogOut, Sparkles, Trash2, Edit3, MessageSquare, Loader2 } from "lucide-react";
+import { Plus, Search, LayoutGrid, List, LogOut, Sparkles, Trash2, Edit3, MessageSquare, Loader2, Pin, PinOff, RotateCcw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUser, useClerk } from "@clerk/nextjs";
 import CreateIdeaModal from "@/components/CreateIdeaModal";
@@ -12,14 +12,20 @@ interface Idea {
     content: string;
     tags: string[];
     summary?: string;
+    isPinned: boolean;
+    isTrashed: boolean;
     createdAt: string;
 }
+
+type FilterType = "All Ideas" | "Pinned" | "AI Summaries" | "Trash";
 
 export default function Dashboard() {
     const { user } = useUser();
     const { signOut } = useClerk();
     const [ideas, setIdeas] = useState<Idea[]>([]);
     const [isNewModalOpen, setIsNewModalOpen] = useState(false);
+    const [editingIdea, setEditingIdea] = useState<Idea | null>(null);
+    const [activeFilter, setActiveFilter] = useState<FilterType>("All Ideas");
     const [searchQuery, setSearchQuery] = useState("");
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
     const [isLoading, setIsLoading] = useState(true);
@@ -42,8 +48,8 @@ export default function Dashboard() {
         }
     };
 
-    const deleteIdea = async (id: string) => {
-        if (!confirm("Are you sure you want to delete this idea?")) return;
+    const deleteIdeaPermanently = async (id: string) => {
+        if (!confirm("Are you sure you want to delete this idea permanently?")) return;
         try {
             const res = await fetch(`/api/ideas/${id}`, { method: "DELETE" });
             if (res.ok) {
@@ -54,11 +60,62 @@ export default function Dashboard() {
         }
     };
 
-    const filteredIdeas = ideas.filter((i) =>
-        i.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        i.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        i.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()))
-    );
+    const toggleTrash = async (idea: Idea) => {
+        try {
+            const res = await fetch(`/api/ideas/${idea.id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ isTrashed: !idea.isTrashed }),
+            });
+            if (res.ok) {
+                const updated = await res.json();
+                setIdeas(ideas.map((i) => (i.id === idea.id ? updated : i)));
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const togglePin = async (idea: Idea) => {
+        try {
+            const res = await fetch(`/api/ideas/${idea.id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ isPinned: !idea.isPinned }),
+            });
+            if (res.ok) {
+                const updated = await res.json();
+                setIdeas(ideas.map((i) => (i.id === idea.id ? updated : i)));
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const filteredIdeas = ideas.filter((i) => {
+        // First filter by Trash
+        if (activeFilter === "Trash") {
+            if (!i.isTrashed) return false;
+        } else {
+            if (i.isTrashed) return false;
+        }
+
+        // Then filter by active category
+        if (activeFilter === "Pinned" && !i.isPinned) return false;
+        if (activeFilter === "AI Summaries" && !i.summary) return false;
+
+        // Finally filter by search query
+        const matchesSearch = i.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            i.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            i.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()));
+
+        return matchesSearch;
+    });
+
+    const openEditModal = (idea: Idea) => {
+        setEditingIdea(idea);
+        setIsNewModalOpen(true);
+    };
 
     return (
         <div className="min-h-screen bg-transparent flex">
@@ -72,10 +129,11 @@ export default function Dashboard() {
                 </div>
 
                 <nav className="flex-1 space-y-2">
-                    {["All Ideas", "Pinned", "AI Summaries", "Trash"].map((item) => (
+                    {(["All Ideas", "Pinned", "AI Summaries", "Trash"] as FilterType[]).map((item) => (
                         <button
                             key={item}
-                            className={`w-full text-left px-4 py-2 rounded-xl text-sm font-medium transition-all ${item === "All Ideas" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-white hover:bg-white/5"
+                            onClick={() => setActiveFilter(item)}
+                            className={`w-full text-left px-4 py-2 rounded-xl text-sm font-medium transition-all ${activeFilter === item ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-white hover:bg-white/5"
                                 }`}
                         >
                             {item}
@@ -100,7 +158,7 @@ export default function Dashboard() {
             <main className="flex-1 p-8 overflow-y-auto">
                 <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-12">
                     <div>
-                        <h1 className="text-3xl font-bold text-white mb-2">My Ideas</h1>
+                        <h1 className="text-3xl font-bold text-white mb-2">{activeFilter}</h1>
                         <p className="text-muted-foreground">Capture and organize your brilliance.</p>
                     </div>
                     <div className="flex items-center gap-3">
@@ -129,7 +187,10 @@ export default function Dashboard() {
                             </button>
                         </div>
                         <button
-                            onClick={() => setIsNewModalOpen(true)}
+                            onClick={() => {
+                                setEditingIdea(null);
+                                setIsNewModalOpen(true);
+                            }}
                             className="flex items-center gap-2 px-5 py-2.5 premium-gradient rounded-2xl text-sm font-bold text-white transform hover:scale-105 transition-all shadow-lg shadow-primary/20"
                         >
                             <Plus className="w-5 h-5" />
@@ -156,20 +217,51 @@ export default function Dashboard() {
                                     className={`group glass rounded-3xl p-6 hover:border-white/20 transition-all hover:shadow-2xl hover:shadow-primary/5 relative overflow-hidden ${viewMode === "list" ? "flex items-center justify-between gap-6" : ""
                                         }`}
                                 >
-                                    <div className="absolute top-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
-                                        <button className="p-2 bg-white/5 rounded-xl hover:bg-white/10 text-muted-foreground hover:text-white transition-all">
-                                            <Edit3 className="w-4 h-4" />
-                                        </button>
-                                        <button
-                                            onClick={() => deleteIdea(idea.id)}
-                                            className="p-2 bg-white/5 rounded-xl hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
+                                    <div className="absolute top-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 z-10">
+                                        {activeFilter !== "Trash" ? (
+                                            <>
+                                                <button
+                                                    onClick={() => togglePin(idea)}
+                                                    className={`p-2 bg-white/5 rounded-xl hover:bg-white/10 transition-all ${idea.isPinned ? "text-primary" : "text-muted-foreground hover:text-white"}`}
+                                                >
+                                                    {idea.isPinned ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />}
+                                                </button>
+                                                <button
+                                                    onClick={() => openEditModal(idea)}
+                                                    className="p-2 bg-white/5 rounded-xl hover:bg-white/10 text-muted-foreground hover:text-white transition-all"
+                                                >
+                                                    <Edit3 className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => toggleTrash(idea)}
+                                                    className="p-2 bg-white/5 rounded-xl hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <button
+                                                    onClick={() => toggleTrash(idea)}
+                                                    className="p-2 bg-white/5 rounded-xl hover:bg-primary/10 text-muted-foreground hover:text-primary transition-all"
+                                                    title="Restore"
+                                                >
+                                                    <RotateCcw className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => deleteIdeaPermanently(idea.id)}
+                                                    className="p-2 bg-white/5 rounded-xl hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all"
+                                                    title="Delete Permanently"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </>
+                                        )}
                                     </div>
 
                                     <div className={viewMode === "list" ? "flex-1" : ""}>
                                         <div className="flex items-center gap-2 mb-3">
+                                            {idea.isPinned && <Pin className="w-3 h-3 text-primary fill-primary" />}
                                             <div className="w-2 h-2 rounded-full bg-primary" />
                                             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                                                 {new Date(idea.createdAt).toLocaleDateString()}
@@ -202,12 +294,15 @@ export default function Dashboard() {
                         <div className="w-20 h-20 bg-white/5 rounded-[2.5rem] flex items-center justify-center mb-8">
                             <Sparkles className="w-10 h-10 text-muted-foreground/30" />
                         </div>
-                        <h2 className="text-2xl font-bold text-white mb-3">No ideas found</h2>
+                        <h2 className="text-2xl font-bold text-white mb-3">No ideas found in {activeFilter}</h2>
                         <p className="text-muted-foreground max-w-sm mb-10 leading-relaxed">
                             Your knowledge base is empty. Start by capturing your first brilliant thought.
                         </p>
                         <button
-                            onClick={() => setIsNewModalOpen(true)}
+                            onClick={() => {
+                                setEditingIdea(null);
+                                setIsNewModalOpen(true);
+                            }}
                             className="px-8 py-4 premium-gradient rounded-2xl text-lg font-bold text-white transform hover:scale-105 transition-all shadow-xl shadow-primary/30"
                         >
                             Get Started
@@ -218,10 +313,13 @@ export default function Dashboard() {
 
             <CreateIdeaModal
                 isOpen={isNewModalOpen}
-                onClose={() => setIsNewModalOpen(false)}
+                initialData={editingIdea || undefined}
+                onClose={() => {
+                    setIsNewModalOpen(false);
+                    setEditingIdea(null);
+                }}
                 onSave={() => {
                     fetchIdeas();
-                    setIsNewModalOpen(false);
                 }}
             />
         </div>

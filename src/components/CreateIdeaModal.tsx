@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Sparkles, X, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -8,15 +8,34 @@ interface IdeaModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSave: (idea: any) => void;
+    initialData?: {
+        id: string;
+        title: string;
+        content: string;
+        tags: string[];
+    };
 }
 
-export default function CreateIdeaModal({ isOpen, onClose, onSave }: IdeaModalProps) {
-    const [title, setTitle] = useState("");
-    const [content, setContent] = useState("");
-    const [tags, setTags] = useState<string[]>([]);
+export default function CreateIdeaModal({ isOpen, onClose, onSave, initialData }: IdeaModalProps) {
+    const [title, setTitle] = useState(initialData?.title || "");
+    const [content, setContent] = useState(initialData?.content || "");
+    const [tags, setTags] = useState<string[]>(initialData?.tags || []);
     const [tagInput, setTagInput] = useState("");
     const [isAIProcessing, setIsAIProcessing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+
+    // Update state when initialData changes (e.g. switching between different ideas to edit)
+    useEffect(() => {
+        if (initialData) {
+            setTitle(initialData.title);
+            setContent(initialData.content);
+            setTags(initialData.tags);
+        } else {
+            setTitle("");
+            setContent("");
+            setTags([]);
+        }
+    }, [initialData, isOpen]);
 
     const handleAddTag = () => {
         if (tagInput && !tags.includes(tagInput)) {
@@ -52,17 +71,22 @@ export default function CreateIdeaModal({ isOpen, onClose, onSave }: IdeaModalPr
         e.preventDefault();
         setIsSaving(true);
         try {
-            const res = await fetch("/api/ideas", {
-                method: "POST",
+            const url = initialData ? `/api/ideas/${initialData.id}` : "/api/ideas";
+            const method = initialData ? "PATCH" : "POST";
+
+            const res = await fetch(url, {
+                method: method,
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ title, content, tags }),
             });
             if (res.ok) {
-                const newIdea = await res.json();
-                onSave(newIdea);
-                setTitle("");
-                setContent("");
-                setTags([]);
+                const updatedIdea = await res.json();
+                onSave(updatedIdea);
+                if (!initialData) {
+                    setTitle("");
+                    setContent("");
+                    setTags([]);
+                }
                 onClose();
             }
         } catch (error) {

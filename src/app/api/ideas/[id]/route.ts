@@ -8,6 +8,8 @@ const ideaUpdateSchema = z.object({
   content: z.string().min(1).optional(),
   tags: z.array(z.string()).optional(),
   summary: z.string().optional(),
+  isPinned: z.boolean().optional(),
+  isTrashed: z.boolean().optional(),
 });
 
 export async function PATCH(

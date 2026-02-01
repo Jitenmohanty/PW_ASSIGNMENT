@@ -14,6 +14,8 @@ model Idea {
   content     String   @db.Text
   tags        String[]
   summary     String?  @db.Text
+  isPinned    Boolean  @default(false)
+  isTrashed   Boolean  @default(false)
   userId      String   // This will be the Clerk UserId
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
