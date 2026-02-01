@@ -22,7 +22,7 @@ export async function PATCH(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     const body = await req.json();
     const updateData = ideaUpdateSchema.parse(body);
 
@@ -59,7 +59,7 @@ export async function DELETE(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     const idea = await prisma.idea.findUnique({
       where: { id },

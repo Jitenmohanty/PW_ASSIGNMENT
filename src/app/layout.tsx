@@ -20,7 +20,7 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en" className="dark" suppressHydrationWarning>
-        <body className={`${inter.variable} ${outfit.variable} font-sans antialiased text-foreground selection:bg-primary/30`}>
+        <body suppressHydrationWarning className={`${inter.variable} ${outfit.variable} font-sans antialiased text-foreground selection:bg-primary/30`}>
           {children}
         </body>
       </html>

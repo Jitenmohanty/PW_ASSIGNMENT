@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { auth } from "@clerk/nextjs/server";
 import { generateIdeaSummary, generateSmartTags } from "@/lib/gemini";
 import { z } from "zod";
 
@@ -11,8 +10,8 @@ const aiRequestSchema = z.object({
 
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session || !session.user) {
+    const { userId } = await auth();
+    if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
