@@ -147,16 +147,28 @@ export default function Dashboard() {
                 ))}
             </nav>
 
-            <div className="mt-auto pt-6 border-t border-white/5 flex items-center justify-between">
-                <div className="flex items-center gap-3 overflow-hidden">
-                    <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center text-xs font-bold text-primary shrink-0 overflow-hidden">
-                        {user?.imageUrl ? <img src={user.imageUrl} className="w-full h-full object-cover" alt="" /> : user?.fullName?.[0] || "U"}
+            <div className="mt-auto pt-6 border-t border-white/5 space-y-4">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3 overflow-hidden">
+                        <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center text-xs font-bold text-primary shrink-0 overflow-hidden">
+                            {user?.imageUrl ? <img src={user.imageUrl} className="w-full h-full object-cover" alt="" /> : user?.fullName?.[0] || "U"}
+                        </div>
+                        <p className="text-sm font-medium text-white truncate">{user?.fullName}</p>
                     </div>
-                    <p className="text-sm font-medium text-white truncate">{user?.fullName}</p>
+                    <button onClick={() => signOut({ redirectUrl: "/" })} className="p-2 text-muted-foreground hover:text-destructive transition-colors">
+                        <LogOut className="w-4 h-4" />
+                    </button>
                 </div>
-                <button onClick={() => signOut({ redirectUrl: "/" })} className="p-2 text-muted-foreground hover:text-destructive transition-colors">
-                    <LogOut className="w-4 h-4" />
-                </button>
+
+                {/* Mandatory Developer Credits */}
+                <div className="pt-4 border-t border-white/5">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Developed By</p>
+                    <p className="text-sm font-semibold text-white mb-2">Jiten Kumar Mohanty</p>
+                    <div className="flex gap-4 text-xs font-medium text-muted-foreground">
+                        <a href="https://github.com/jiten" target="_blank" className="hover:text-primary transition-colors">GitHub</a>
+                        <a href="https://linkedin.com/in/jiten" target="_blank" className="hover:text-primary transition-colors">LinkedIn</a>
+                    </div>
+                </div>
             </div>
         </div>
     );

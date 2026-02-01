@@ -139,7 +139,7 @@ export default function LandingPage() {
                     <div className="flex gap-8 items-center text-sm font-medium text-muted-foreground">
                         <a href="https://github.com/jiten" target="_blank" className="hover:text-white transition-colors">GitHub</a>
                         <a href="https://linkedin.com/in/jiten" target="_blank" className="hover:text-white transition-colors">LinkedIn</a>
-                        <span className="text-white font-semibold">Jitendra Kumar</span>
+                        <span className="text-white font-semibold">Jiten Kumar Mohanty</span>
                     </div>
                 </div>
             </footer>

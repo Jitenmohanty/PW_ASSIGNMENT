@@ -53,6 +53,6 @@ ZenIdea is a high-performance, AI-driven personal knowledge base built with **Ne
 - **DB Pooling**: Optimized for high-concurrency connections.
 
 ## 👤 Developer
-- **Name**: Jitendra Kumar
-- **GitHub**: [jiten](https://github.com/jiten)
-- **LinkedIn**: [Jitendra Kumar](https://linkedin.com/in/jiten)
+- **Name**: Jiten Kumar Mohanty
+- **GitHub**: [jiten](https://github.com/jitenmohanty)
+- **LinkedIn**: [Jiten Kumar Mohanty](https://www.linkedin.com/in/jiten-mohanty/)
