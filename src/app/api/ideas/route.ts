@@ -7,6 +7,7 @@ const ideaSchema = z.object({
   title: z.string().min(1, "Title is required"),
   content: z.string().min(1, "Content is required"),
   tags: z.array(z.string()).optional(),
+  summary: z.string().optional(),
 });
 
 export async function POST(req: Request) {
@@ -17,13 +18,14 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { title, content, tags } = ideaSchema.parse(body);
+    const { title, content, tags, summary } = ideaSchema.parse(body);
 
     const idea = await prisma.idea.create({
       data: {
         title,
         content,
         tags: tags || [],
+        summary: summary || null,
         userId: userId,
       },
     });
